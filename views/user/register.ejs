@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Register</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div class="center-container">
+    <div class="auth-card">
+      <h2>Create Account</h2>
+
+      <% if (error) { %>
+        <p class="auth-error"><%= error %></p>
+      <% } %>
+
+      <form id="registerForm" action="/register" method="POST">
+
+        <label>Name</label>
+        <input type="text" name="name" required />
+
+        <label>Email</label>
+        <input type="text" name="email" required />
+
+        <label>Password</label>
+        <input type="password" name="password" id="password" required />
+
+        <p id="passMsg" style="color:red; font-size:14px;"></p>
+
+        <button type="submit" class="btn full-btn">Register</button>
+      </form>
+
+      <p style="text-align:center; margin-top:10px;">
+        Already have an account? <a href="/">Login</a>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("registerForm");
+    const passwordField = document.getElementById("password");
+    const passMsg = document.getElementById("passMsg");
+
+    form.addEventListener("submit", (e) => {
+      const password = passwordField.value.trim();
+
+      if (password.length < 8) {
+        e.preventDefault();
+        passMsg.textContent = "Password must be at least 8 characters";
+      }
+       else if (!/[A-Z]/.test(password)) {
+        e.preventDefault();
+        passMsg.textContent = "Password must contain an uppercase letter";
+      }
+      else if (!/[0-9]/.test(password)) {
+        e.preventDefault();
+        passMsg.textContent = "Password must contain a number";
+      } else {
+        passMsg.textContent = "";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Login</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+  <div class="center-container">
+    <div class="login-card">
+
+      <h2>Login</h2>
+
+      <% if (error) { %>
+        <p class="login-error"><%= error %></p>
+      <% } %>
+
+      <form id="loginForm" action="/login" method="POST">
+
+        <label>Email</label>
+        <input type="email" name="email" required />
+
+        <label>Password</label>
+        <input type="password" name="password" id="password" required />
+
+        <p id="loginMsg" style="color:red; font-size:14px;"></p>
+
+        <button type="submit" class="btn full-btn">Login</button>
+      </form>
+
+      <p style="text-align:center; margin-top:10px;">
+        Don't have an account?  
+        <a href="/register">Register</a>
+      </p>
+
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("loginForm");
+    const passMsg = document.getElementById("loginMsg");
+
+    form.addEventListener("submit", (e) => {
+      const password = document.getElementById("password").value.trim();
+
+      if (password.length === 0) {
+        e.preventDefault();
+        passMsg.textContent = "Password cannot be empty";
+      } 
+    });
+  </script>
+
+</body>
+</html>

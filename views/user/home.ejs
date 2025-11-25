@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Home</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+<body>
+
+  <div id="toast" class="toast"></div>
+
+  <nav class="navbar">
+    <div class="nav-left">
+      <h2 class="logo">UserPanel</h2>
+    </div>
+
+    <div class="nav-right">
+      <button id="profileBtn" class="profile-btn">
+        <img src="/images/image-icon.jpg" class="profile-img" alt="Profile">
+      </button>
+    </div>
+  </nav>
+
+  <div class="main-wrapper">
+    <div class="card">
+      <h2>Welcome <%= user.name %> 👋</h2>
+      <p>Hope you're having a productive day! 🚀</p>
+    </div>
+  </div>
+
+
+
+  <div id="profileModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeProfile">&times;</span>
+
+      <h2>Your Profile</h2>
+
+      <p><strong>Name:</strong> <%= user.name %></p>
+      <p><strong>Email:</strong> <%= user.email %></p>
+
+      <div class="modal-actions">
+        <button class="btn" id="openEdit">Edit Profile</button>
+        <button class="btn" id="openPassword">Reset Password</button>
+        <a href="/logout" class="btn logout-btn">Logout</a>
+      </div>
+
+    </div>
+  </div>
+
+
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closeEdit">&times;</span>
+
+      <h2>Edit Profile</h2>
+
+      <form action="/update-name" method="POST">
+        <label>Name</label>
+        <input type="text" name="name" value="<%= user.name %>" required />
+
+        <label>Email</label>
+        <input type="email" value="<%= user.email %>" readonly style="background:#eee;">
+
+        <button type="submit" id="saveNameBtn" class="btn full-btn" disabled>Save Changes</button>
+      </form>
+
+    </div>
+  </div>
+
+
+
+  <div id="passwordModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="closePassword">&times;</span>
+
+      <h2>Reset Password</h2>
+
+      <form action="/update-password" method="POST" id="pwdForm">
+
+        <label>Current Password</label>
+        <input type="password" name="currentPassword" id="oldPass" placeholder="Enter current password">
+
+        <label>New Password</label>
+        <input type="password" name="newPassword" id="newPass" placeholder="New password">
+
+        <label>Confirm New Password</label>
+        <input type="password" name="confirmPassword" id="confirmPass" placeholder="Confirm new password">
+
+        <p id="pwdError" class="error-text"></p>
+
+        <button type="submit" class="btn full-btn">Update Password</button>
+
+      </form>
+
+    </div>
+  </div>
+
+
+
+<script>
+ 
+  const profileBtn = document.getElementById("profileBtn");
+  const profileModal = document.getElementById("profileModal");
+  const closeProfile = document.getElementById("closeProfile");
+
+  profileBtn.onclick = () => profileModal.style.display = "block";
+  closeProfile.onclick = () => profileModal.style.display = "none";
+
+  const editModal = document.getElementById("editModal");
+  document.getElementById("openEdit").onclick = () => {
+    profileModal.style.display = "none";
+    editModal.style.display = "block";
+  };
+  document.getElementById("closeEdit").onclick = () => editModal.style.display = "none";
+
+  const pwdModal = document.getElementById("passwordModal");
+  document.getElementById("openPassword").onclick = () => {
+    profileModal.style.display = "none";
+    pwdModal.style.display = "block";
+  };
+  document.getElementById("closePassword").onclick = () => pwdModal.style.display = "none";
+
+
+  window.onclick = (e) => {
+    if (e.target === profileModal) profileModal.style.display = "none";
+    if (e.target === editModal) editModal.style.display = "none";
+    if (e.target === pwdModal) pwdModal.style.display = "none";
+  };
+
+
+  const pwdForm = document.getElementById("pwdForm");
+  const oldPass = document.getElementById("oldPass");
+  const newPass = document.getElementById("newPass");
+  const confirmPass = document.getElementById("confirmPass");
+  const pwdError = document.getElementById("pwdError");
+
+  pwdForm.addEventListener("submit", (e) => {
+    pwdError.textContent = "";
+
+    if (newPass.value.trim().length < 8) {
+      e.preventDefault();
+      pwdError.textContent = "Password must be at least 8 characters.";
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPass.value)) {
+      e.preventDefault();
+      pwdError.textContent = "Password must contain an uppercase letter.";
+      return;
+    }
+
+    if (!/[0-9]/.test(newPass.value)) {
+      e.preventDefault();
+      pwdError.textContent = "Password must contain a number.";
+      return;
+    }
+
+    if (newPass.value !== confirmPass.value) {
+      e.preventDefault();
+      pwdError.textContent = "New password & confirm do not match.";
+      return;
+    }
+  });
+
+  const nameInput = document.querySelector("#editModal input[name='name']");
+  const saveBtn = document.getElementById("saveNameBtn");
+  const originalName = nameInput.value.trim();
+
+  nameInput.addEventListener("input", () => {
+    const currentName = nameInput.value.trim();
+
+    if (currentName !== originalName && currentName.length >= 3) {
+      saveBtn.disabled = false;
+      saveBtn.style.opacity = "1";
+      saveBtn.style.cursor = "pointer";
+    } else {
+      saveBtn.disabled = true;
+      saveBtn.style.opacity = "0.5";
+      saveBtn.style.cursor = "not-allowed";
+    }
+  });
+
+
+
+  function showToast(message, isError = false) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+
+    if (isError) {
+      toast.classList.add("error");
+    } else {
+      toast.classList.remove("error");
+    }
+
+    toast.classList.add("show");
+
+    setTimeout(() => {
+      toast.classList.remove("show");
+    }, 3000);
+  }
+</script>
+
+<% if (toast) { %>
+  <script>
+    showToast("<%= toast %>");
+  </script>
+<% } %>
+
+<% if (toastError) { %>
+  <script>
+    showToast("<%= toastError %>", true);
+  </script>
+<% } %>
+
+
+<% if (openPwdModal && pwdError) { %>
+<script>
+  window.onload = () => {
+    document.getElementById("passwordModal").style.display = "block";
+    document.getElementById("pwdError").innerHTML = "<%= pwdError %>";
+  };
+</script>
+<% } %>
+
+</body>
+</html>
