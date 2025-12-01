@@ -55,6 +55,9 @@
       else if (!/[0-9]/.test(password)) {
         e.preventDefault();
         passMsg.textContent = "Password must contain a number";
+      } else if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+        e.preventDefault();
+        passMsg.textContent = "Password must contain a special character";
       } else {
         passMsg.textContent = "";
       }

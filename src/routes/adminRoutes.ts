@@ -1,31 +1,33 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import User from "../models/User";
 import { adminAuth } from "../middlewares/adminAuth";
 
 const router = express.Router();
 
-router.get("/admin/login", (req: Request, res: Response) => {
+router.get("/admin/login", (req: Request, res: Response): void => {
   res.render("admin/admin-login", { error: null });
 });
 
-router.post("/admin/login", async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+router.post("/admin/login", async (req: Request, res: Response): Promise<void> => {
+  const { email, password }: { email: string; password: string } = req.body;
 
   try {
     const admin = await User.findOne({ email, role: "admin" });
 
     if (!admin) {
-      return res.render("admin/admin-login", {
+      res.render("admin/admin-login", {
         error: "Invalid admin credentials",
       });
+      return;
     }
 
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
-      return res.render("admin/admin-login", {
+      res.render("admin/admin-login", {
         error: "Invalid admin credentials",
       });
+      return;
     }
 
     (req.session as any).admin = {
@@ -35,21 +37,21 @@ router.post("/admin/login", async (req: Request, res: Response) => {
       role: admin.role,
     };
 
-    return res.redirect("/admin/dashboard");
+    res.redirect("/admin/dashboard");
 
-  } catch (err) {
-    console.error("Admin login error:", err);
-    return res.render("admin/admin-login", {
+  } catch (err: unknown) {
+    res.render("admin/admin-login", {
       error: "Server error, try again!",
     });
   }
 });
 
-router.get("/admin/dashboard", adminAuth, async (req: Request, res: Response) => {
+router.get("/admin/dashboard", adminAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const admin = (req.session as any).admin;
 
-    const page = Math.max(1, parseInt((req.query.page as string) || "1"));
+    const pageParam = req.query.page as string | undefined;
+    const page = Math.max(1, parseInt(pageParam || "1"));
     const limit = 5;
     const skip = (page - 1) * limit;
 
@@ -65,7 +67,7 @@ router.get("/admin/dashboard", adminAuth, async (req: Request, res: Response) =>
 
     const totalPages = Math.ceil(totalUsers / limit);
 
-    return res.render("admin/dashboard", {
+    res.render("admin/dashboard", {
       admin,
       users,
       page,
@@ -75,40 +77,41 @@ router.get("/admin/dashboard", adminAuth, async (req: Request, res: Response) =>
       blockedUsers
     });
 
-  } catch (err) {
-    console.error("Dashboard load error:", err);
+  } catch (err: unknown) {
     res.status(500).send("Error loading dashboard");
   }
 });
 
 
-router.get("/admin/block/:id", adminAuth, async (req: Request, res: Response) => {
+router.get("/admin/block/:id", adminAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    await User.findByIdAndUpdate(req.params.id, { isBlocked: true });
+    const { id } = req.params;
+    await User.findByIdAndUpdate(id, { isBlocked: true });
 
-    const page = req.query.page ? `?page=${req.query.page}` : "";
+    const pageParam = req.query.page as string | undefined;
+    const page = pageParam ? `?page=${pageParam}` : "";
     res.redirect(`/admin/dashboard${page}`);
 
-  } catch (err) {
-    console.log("Block user error:", err);
+  } catch (err: unknown) {
     res.redirect("/admin/dashboard");
   }
 });
 
-router.get("/admin/unblock/:id", adminAuth, async (req: Request, res: Response) => {
+router.get("/admin/unblock/:id", adminAuth, async (req: Request, res: Response): Promise<void> => {
   try {
-    await User.findByIdAndUpdate(req.params.id, { isBlocked: false });
+    const { id } = req.params;
+    await User.findByIdAndUpdate(id, { isBlocked: false });
 
-    const page = req.query.page ? `?page=${req.query.page}` : "";
+    const pageParam = req.query.page as string | undefined;
+    const page = pageParam ? `?page=${pageParam}` : "";
     res.redirect(`/admin/dashboard${page}`);
 
-  } catch (err) {
-    console.log("Unblock user error:", err);
+  } catch (err: unknown) {
     res.redirect("/admin/dashboard");
   }
 });
 
-router.get("/admin/logout", (req: Request, res: Response) => {
+router.get("/admin/logout", (req: Request, res: Response): void => {
   req.session.destroy(() => {
     res.redirect("/admin/login");
   });

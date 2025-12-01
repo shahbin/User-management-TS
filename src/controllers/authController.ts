@@ -1,103 +1,92 @@
-import { Request, Response } from "express";
-import User from "../models/User";
-import bcrypt from "bcrypt";
+import { Request, Response, NextFunction } from "express";
+import { IUserService } from "../services/IUserService";
+import { IUserRegisterRequest, IUserLoginRequest } from "../dtos/user.dto";
+import { ResponseHandler } from "../utils/response";
+import { AppError } from "../utils/errors";
 
-export const registerUser = async (req: Request, res: Response) => {
-  try {
-    const { name, email, password } = req.body;
+export class AuthController {
+  constructor(private userService: IUserService) {}
 
-    if (!name || !email || !password) {
-      return res.render("user/register", { error: "All fields are required" });
+  registerUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { name, email, password } = req.body;
+
+      const registerRequest: IUserRegisterRequest = {
+        name,
+        email,
+        password,
+      };
+
+      const user = await this.userService.registerUser(registerRequest);
+      req.session.user = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      };
+
+      const acceptHeader = (req.headers.accept || "").toString();
+      const wantsJson = acceptHeader.includes("application/json") || req.xhr;
+
+      if (wantsJson) {
+        ResponseHandler.success(res, user, "Registration successful! Welcome 👋", 201);
+      } else {
+        res.redirect("/home");
+      }
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.render("user/register", { error: "Invalid email format" });
+
+  loginUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { email, password } = req.body;
+
+      const loginRequest: IUserLoginRequest = {
+        email,
+        password,
+      };
+
+      const user = await this.userService.loginUser(loginRequest);
+      req.session.user = {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      };
+
+      const acceptHeader = (req.headers.accept || "").toString();
+      const wantsJson = acceptHeader.includes("application/json") || req.xhr;
+
+      if (wantsJson) {
+        ResponseHandler.success(res, user, "Login successful", 200);
+      } else {
+        res.redirect("/home");
+      }
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const exist = await User.findOne({ email: email.toLowerCase() });
-    if (exist) {
-      return res.render("user/register", { error: "Email already in use" });
+  logoutUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      req.session.destroy((err) => {
+        if (err) {
+          return next(err);
+        }
+
+        const acceptHeader = (req.headers.accept || "").toString();
+        const wantsJson = acceptHeader.includes("application/json") || req.xhr;
+
+        if (wantsJson) {
+          ResponseHandler.success(res, null, "Logout successful", 200);
+        } else {
+          res.redirect("/");
+        }
+      });
+    } catch (error) {
+      next(error);
     }
-
-    if (password.length < 8) {
-      return res.render("user/register", { error: "Password must be at least 8 characters" });
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      return res.render("user/register", { error: "Password must contain an uppercase letter" });
-    }
-
-    if (!/[0-9]/.test(password)) {
-      return res.render("user/register", { error: "Password must contain a number" });
-    }
-
-    const hashed = await bcrypt.hash(password, 10);
-
-    const newUser = await User.create({
-      name,
-      email: email.toLowerCase(),
-      password: hashed,
-      role: "user",
-    });
-
-    req.session.user = {
-      _id: newUser._id.toString(),
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-    };
-
-    req.session.toast = "Registration successful! Welcome 👋";
-
-    return res.redirect("/home");
-
-  } catch (error) {
-    console.log(error);
-    return res.render("user/register", { error: "Server error occurred" });
-  }
-};
-
-
-
-export const loginUser = async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.render("user/login", { error: "All fields are required" });
-    }
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-
-    if (!user) {
-      return res.render("user/login", { error: "Incorrect email or password" });
-    }
-
-    if (user.isBlocked) {
-      return res.render("user/login", { error: "Your account has been blocked by admin" });
-    }
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.render("user/login", { error: "Incorrect email or password" });
-    }
-
-    req.session.user = {
-      _id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    };
-
-    if (user.role === "admin") {
-      return res.redirect("/admin/dashboard");
-    }
-
-    return res.redirect("/home");
-
-  } catch (error) {
-    console.log(error);
-    return res.render("user/login", { error: "Server error occurred" });
-  }
-};
+  };
+}

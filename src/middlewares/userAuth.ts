@@ -31,7 +31,6 @@ export const userAuth = async (req: Request, res: Response, next: NextFunction) 
     return next();
 
   } catch (err) {
-    console.error("userAuth error:", err);
     return res.status(500).send("Server error");
   }
 };

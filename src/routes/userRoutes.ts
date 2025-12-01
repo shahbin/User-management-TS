@@ -1,14 +1,17 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
 import User from "../models/User";
 import { userAuth } from "../middlewares/userAuth";
 
 const router = express.Router();
 
-router.get("/home", userAuth, (req: Request, res: Response) => {
+router.get("/home", userAuth, (req: Request, res: Response): void => {
   const sessionUser = (req.session as any).user;
 
-  if (!sessionUser) return res.redirect("/");
+  if (!sessionUser) {
+    res.redirect("/");
+    return;
+  }
 
   const toast = req.session.toast || null;
   const toastError = req.session.toastError || null;
@@ -29,21 +32,25 @@ router.get("/home", userAuth, (req: Request, res: Response) => {
   });
 });
 
-router.post("/update-name", userAuth, async (req: Request, res: Response) => {
+router.post("/update-name", userAuth, async (req: Request, res: Response): Promise<void> => {
   try {
     const sessionUser = (req.session as any).user;
-    if (!sessionUser) return res.redirect("/");
+    if (!sessionUser) {
+      res.redirect("/");
+      return;
+    }
 
-    const { name } = req.body;
+    const { name }: { name: string } = req.body;
 
     if (!name || name.trim().length < 3) {
-      return res.render("user/home", {
+      res.render("user/home", {
         user: sessionUser,
         modalError: "Name must be at least 3 characters",
         toast: null,
         toastError: null,
         pwdError: null
       });
+      return;
     }
 
     await User.findByIdAndUpdate(sessionUser._id, { name: name.trim() });
@@ -52,67 +59,79 @@ router.post("/update-name", userAuth, async (req: Request, res: Response) => {
 
     req.session.toast = "Name updated successfully!";
 
-    return res.redirect("/home");
+    res.redirect("/home");
 
-  } catch (err) {
-    console.error("Name update error:", err);
-    return res.status(500).send("Server error");
+  } catch (err: unknown) {
+    res.status(500).send("Server error");
   }
 });
 
-router.post("/update-password", async (req: Request, res: Response) => {
+router.post("/update-password", async (req: Request, res: Response): Promise<void> => {
   try {
     const sessionUser = (req.session as any).user;
-    if (!sessionUser) return res.redirect("/");
+    if (!sessionUser) {
+      res.redirect("/");
+      return;
+    }
 
-    const { currentPassword, newPassword, confirmPassword } = req.body;
+    const { currentPassword, newPassword, confirmPassword }: { 
+      currentPassword: string;
+      newPassword: string;
+      confirmPassword: string;
+    } = req.body;
 
     const user = await User.findById(sessionUser._id);
     if (!user) {
       req.session.toastError = "User not found";
-      return res.redirect("/home");
+      res.redirect("/home");
+      return;
     }
 
-    const showPwdModal = (msg: string) => {
+    const showPwdModal = (msg: string): void => {
       req.session.pwdError = msg;
-      req.session.openPwdModal = true;  
-      return res.redirect("/home");
+      req.session.openPwdModal = true;
     };
 
     if (!currentPassword || currentPassword.trim() === "") {
-      return res.render("user/home", {
+      res.render("user/home", {
         user: sessionUser,
         pwdError: "Please enter your current password",
         toast: null,
         toastError: null
       });
+      return;
     }
 
     if (!newPassword || newPassword.length < 8) {
       req.session.toastError = "Password must be at least 8 characters";
-      return res.redirect("/home");
+      res.redirect("/home");
+      return;
     }
 
     if (!/[A-Z]/.test(newPassword)) {
       req.session.toastError = "Password must contain an uppercase letter";
-      return res.redirect("/home");
+      res.redirect("/home");
+      return;
     }
 
     if (!/[0-9]/.test(newPassword)) {
       req.session.toastError = "Password must contain a number";
-      return res.redirect("/home");
+      res.redirect("/home");
+      return;
     }
 
     if (newPassword !== confirmPassword) {
       req.session.toastError = "New password and confirm password do not match";
-      return res.redirect("/home");
+      res.redirect("/home");
+      return;
     }
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
-      return showPwdModal("Current password is incorrect");
+      showPwdModal("Current password is incorrect");
+      res.redirect("/home");
+      return;
     }
-
 
     const hashed = await bcrypt.hash(newPassword, 10);
     user.password = hashed;
@@ -120,16 +139,15 @@ router.post("/update-password", async (req: Request, res: Response) => {
 
     req.session.toast = "Password updated successfully!";
 
-    return res.redirect("/home");
+    res.redirect("/home");
 
-  } catch (err) {
-    console.error("Password update error:", err);
-    return res.status(500).send("Server error");
+  } catch (err: unknown) {
+    res.status(500).send("Server error");
   }
 });
 
 
-router.get("/logout", (req, res) => {
+router.get("/logout", (req: Request, res: Response): void => {
   req.session.destroy(() => {
     res.redirect("/");
   });
