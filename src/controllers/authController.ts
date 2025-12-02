@@ -33,8 +33,16 @@ export class AuthController {
       } else {
         res.redirect("/home");
       }
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      const acceptHeader = (req.headers.accept || "").toString();
+      const wantsJson = acceptHeader.includes("application/json") || req.xhr;
+
+      if (wantsJson) {
+        next(error);
+      } else {
+        const errorMessage = error.message || "Registration failed";
+        res.render("user/register", { error: errorMessage });
+      }
     }
   };
 
@@ -64,8 +72,16 @@ export class AuthController {
       } else {
         res.redirect("/home");
       }
-    } catch (error) {
-      next(error);
+    } catch (error: any) {
+      const acceptHeader = (req.headers.accept || "").toString();
+      const wantsJson = acceptHeader.includes("application/json") || req.xhr;
+
+      if (wantsJson) {
+        next(error);
+      } else {
+        const errorMessage = error.message || "Login failed";
+        res.render("user/login", { error: errorMessage });
+      }
     }
   };
 

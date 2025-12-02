@@ -11,9 +11,7 @@
 
       <h2>Login</h2>
 
-      <% if (error) { %>
-        <p class="login-error"><%= error %></p>
-      <% } %>
+      <p id="errorMsg" style="color:red; font-size:14px;"><% if (error) { %><%= error %><% } %></p>
 
       <form id="loginForm" action="/login" method="POST">
 
@@ -38,15 +36,50 @@
 
   <script>
     const form = document.getElementById("loginForm");
-    const passMsg = document.getElementById("loginMsg");
+    const emailField = document.querySelector('input[name="email"]');
+    const passwordField = document.getElementById("password");
+    const loginMsg = document.getElementById("loginMsg");
+    const errorMsg = document.getElementById("errorMsg");
+
+    // Clear server error message when user starts typing
+    emailField.addEventListener("input", () => {
+      errorMsg.textContent = "";
+    });
+
+    passwordField.addEventListener("input", () => {
+      errorMsg.textContent = "";
+    });
 
     form.addEventListener("submit", (e) => {
-      const password = document.getElementById("password").value.trim();
+      const email = emailField.value.trim();
+      const password = passwordField.value.trim();
 
-      if (password.length === 0) {
+      if (!email) {
         e.preventDefault();
-        passMsg.textContent = "Password cannot be empty";
-      } 
+        loginMsg.textContent = "Email is required";
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        e.preventDefault();
+        loginMsg.textContent = "Invalid email format";
+        return;
+      }
+
+      if (!password) {
+        e.preventDefault();
+        loginMsg.textContent = "Password is required";
+        return;
+      }
+
+      if (password.length < 8) {
+        e.preventDefault();
+        loginMsg.textContent = "Password must be at least 8 characters";
+        return;
+      }
+
+      loginMsg.textContent = "";
     });
   </script>
 
